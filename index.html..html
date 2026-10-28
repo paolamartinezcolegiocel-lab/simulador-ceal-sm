@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Sensibilización CEAL-SM</title>
+<style>
+:root{
+  --purple:#6f3fa5; --purple2:#8f5bc3; --light:#f5effa;
+  --ink:#263238; --muted:#667085; --green:#16865b; --red:#c0392b;
+  --white:#fff; --border:#ddd3e8; --gold:#e0a52b;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f7f7fa;color:var(--ink)}
+header{background:linear-gradient(135deg,var(--purple),var(--purple2));color:white;padding:28px 20px;text-align:center}
+header h1{margin:0 0 8px;font-size:30px}
+header p{margin:0;font-size:16px}
+.container{max-width:1050px;margin:25px auto;padding:0 18px}
+.card{background:white;border:1px solid var(--border);border-radius:18px;padding:28px;box-shadow:0 5px 18px #0000000d;margin-bottom:20px}
+h2{color:var(--purple);margin-top:0}
+h3{margin-top:0}
+.notice{background:var(--light);border-left:5px solid var(--purple);padding:15px;border-radius:10px;line-height:1.5}
+.buttons{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+button{border:0;border-radius:12px;padding:13px 18px;font-size:16px;font-weight:bold;cursor:pointer}
+.primary{background:var(--purple);color:white}.secondary{background:#eee8f3;color:var(--purple)}
+.option{width:100%;text-align:left;background:white;border:2px solid var(--border);color:var(--ink);margin:8px 0}
+.option:hover{border-color:var(--purple2);background:#fbf8fd}
+.progress{height:12px;background:#e8e5eb;border-radius:20px;overflow:hidden;margin:12px 0 20px}
+.bar{height:100%;background:var(--purple);width:0%;transition:.3s}
+.tag{display:inline-block;background:var(--light);color:var(--purple);padding:6px 10px;border-radius:20px;font-size:13px;font-weight:bold;margin:3px}
+.feedback{padding:18px;border-radius:14px;margin-top:18px;line-height:1.55}
+.correct{background:#eaf8f2;border:1px solid #b9e6d3}.incorrect{background:#fff0ee;border:1px solid #efc1ba}
+.scorebox{display:flex;gap:12px;flex-wrap:wrap}
+.stat{flex:1;min-width:150px;background:var(--light);padding:18px;border-radius:14px;text-align:center}
+.stat strong{display:block;font-size:30px;color:var(--purple)}
+.small{color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.dim{border:1px solid var(--border);border-radius:14px;padding:16px;background:#fff}
+.dim strong{color:var(--purple)}
+.hidden{display:none}
+.center{text-align:center}
+textarea{width:100%;min-height:120px;border:2px solid var(--border);border-radius:12px;padding:12px;font:inherit}
+hr{border:0;border-top:1px solid #eee;margin:25px 0}
+@media print{
+  button{display:none!important}.card{box-shadow:none}.hidden{display:none!important}
+  body{background:white}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Desafío CEAL-SM</h1>
+  <p>Simulador de sensibilización y aprendizaje sobre riesgos psicosociales</p>
+</header>
+
+<div class="container">
+  <section id="start" class="card">
+    <h2>Bienvenidas y bienvenidos</h2>
+    <div class="notice">
+      <strong>Propósito formativo:</strong> este simulador busca ayudar a comprender las dimensiones de los riesgos psicosociales y reconocer situaciones que pueden relacionarse con ellas.
+      <br><br>
+      <strong>Importante:</strong> no solicita nombre, cargo, RUT, correo ni otros datos personales. Las respuestas quedan solamente en este dispositivo mientras se realiza el ejercicio y no se envían a ninguna persona.
+      <br><br>
+      Este ejercicio <strong>no es el cuestionario oficial</strong>, no mide el nivel de riesgo de una persona o del establecimiento y no anticipa el resultado de una aplicación real.
+    </div>
+    <div class="buttons">
+      <button class="primary" onclick="startMode('council')">👥 Modo Consejo: responder juntos</button>
+      <button class="secondary" onclick="startMode('individual')">👤 Modo Individual: practicar</button>
+    </div>
+  </section>
+
+  <section id="intro" class="card hidden"></section>
+  <section id="app" class="hidden"></section>
+</div>
+
+<script>
+const dims = [
+ ["CT","Carga de trabajo","Cantidad, ritmo, tiempos y exigencias de trabajo."],
+ ["EM","Exigencias emocionales","Situaciones laborales que implican una importante demanda emocional."],
+ ["DP","Desarrollo profesional","Oportunidades y posibilidades de aprendizaje, desarrollo y crecimiento laboral."],
+ ["RC","Reconocimiento y claridad de rol","Reconocimiento del trabajo y claridad respecto de funciones, responsabilidades y expectativas."],
+ ["CR","Conflicto de rol","Demandas o instrucciones incompatibles, contradictorias o difíciles de conciliar."],
+ ["QL","Calidad del liderazgo","Forma en que quienes lideran organizan, orientan, escuchan, apoyan y conducen el trabajo."],
+ ["CM","Compañerismo","Apoyo, colaboración y relaciones de cooperación entre compañeros y compañeras."],
+ ["IT","Inseguridad con las condiciones de trabajo","Preocupación o incertidumbre frente a cambios o condiciones laborales que pueden afectar el trabajo."],
+ ["TV","Equilibrio trabajo-vida privada","Interferencia o dificultad para compatibilizar las responsabilidades laborales con la vida personal y familiar."],
+ ["CJ","Confianza y justicia organizacional","Percepción de confianza, trato justo, transparencia y equidad dentro de la organización."],
+ ["VU","Vulnerabilidad","Sensación de indefensión o temor frente a situaciones laborales que pueden dejar a la persona expuesta."],
+ ["VA","Violencia y acoso","Exposición a conductas ofensivas, intimidatorias, humillantes, agresivas o de acoso en el trabajo."]
+];
+
+const questions = [
+// CT
+{d:"CT",q:"Durante una semana hay muchas planificaciones, registros y tareas que deben completarse en plazos muy ajustados. ¿Qué dimensión se relaciona principalmente?",o:["Exigencias emocionales","Carga de trabajo","Compañerismo","Desarrollo profesional"],a:1,e:"El elemento central es la cantidad, ritmo y presión temporal del trabajo. No se describe principalmente una demanda emocional."},
+{d:"CT",q:"Se incorporan nuevas tareas administrativas, pero el tiempo disponible para realizarlas se mantiene igual. ¿Qué dimensión aparece con mayor claridad?",o:["Carga de trabajo","Confianza y justicia organizacional","Vulnerabilidad","Desarrollo profesional"],a:0,e:"La situación se centra en el aumento de tareas y la relación entre cantidad de trabajo y tiempo disponible."},
+{d:"CT",q:"Una trabajadora comenta: “El trabajo es emocionalmente intenso porque atendemos situaciones difíciles, pero la cantidad de tareas administrativas es razonable”. ¿Cuál es la diferencia clave?",o:["Todo corresponde a carga de trabajo","La intensidad emocional apunta a exigencias emocionales; la cantidad de tareas apunta a carga de trabajo","Todo corresponde a compañerismo","Corresponde a conflicto de rol"],a:1,e:"Una misma jornada puede contener distintos elementos. La cantidad/ritmo de tareas se diferencia de la demanda emocional que implica el trabajo."},
+// EM
+{d:"EM",q:"Una profesional debe acompañar a un niño que presenta una situación emocionalmente difícil y esto le exige contener sus propias emociones mientras trabaja. ¿Qué dimensión se relaciona principalmente?",o:["Carga de trabajo","Exigencias emocionales","Desarrollo profesional","Compañerismo"],a:1,e:"El elemento central es la demanda emocional que implica la situación laboral."},
+{d:"EM",q:"Después de atender situaciones complejas con niños y familias, una trabajadora siente que necesita un tiempo para recuperar emocionalmente antes de continuar. ¿Qué dimensión se observa?",o:["Exigencias emocionales","Inseguridad con las condiciones de trabajo","Conflicto de rol","Reconocimiento y claridad de rol"],a:0,e:"La situación describe el impacto de demandas emocionales propias del trabajo."},
+{d:"EM",q:"Hay muchas tareas, pero ninguna implica una exposición emocional especial. ¿Qué dimensión describe mejor esta situación?",o:["Carga de trabajo","Exigencias emocionales","Conflicto de rol","Desarrollo profesional"],a:0,e:"Si el elemento central es la cantidad de tareas y no una demanda emocional especial, corresponde principalmente a carga de trabajo."},
+// DP
+{d:"DP",q:"Una trabajadora quiere capacitarse y aprender nuevas herramientas, pero en su trabajo no encuentra oportunidades para desarrollar esas competencias. ¿Qué dimensión?",o:["Desarrollo profesional","Carga de trabajo","Compañerismo","Violencia y acoso"],a:0,e:"Se relaciona con oportunidades de aprendizaje, desarrollo y crecimiento laboral."},
+{d:"DP",q:"Una persona siente que lleva tiempo realizando las mismas funciones y no tiene posibilidades de aprender o asumir nuevos desafíos. ¿Qué dimensión?",o:["Desarrollo profesional","Conflicto de rol","Equilibrio trabajo-vida privada","Vulnerabilidad"],a:0,e:"El foco está en las oportunidades de desarrollo y aprendizaje."},
+{d:"DP",q:"La jefatura entrega una nueva tarea con instrucciones claras, pero la persona dice que no quiere realizarla porque desea aprender otra área. ¿Qué dimensión sería la más directamente relacionada con esa inquietud?",o:["Desarrollo profesional","Conflicto de rol","Violencia y acoso","Carga de trabajo"],a:0,e:"La inquietud planteada es sobre oportunidades y trayectoria de desarrollo, no sobre una contradicción de instrucciones."},
+// RC
+{d:"RC",q:"Una asistente no sabe exactamente qué tareas son de su responsabilidad ni qué se espera de ella en una actividad. ¿Qué dimensión?",o:["Reconocimiento y claridad de rol","Compañerismo","Desarrollo profesional","Equilibrio trabajo-vida privada"],a:0,e:"El foco está en la claridad de las responsabilidades, los objetivos y las expectativas del trabajo, elementos que SUSESO incluye en esta dimensión."},
+{d:"RC",q:"Una persona siente que su trabajo y aporte no son reconocidos, aunque cumple adecuadamente sus funciones. ¿Qué dimensión?",o:["Reconocimiento y claridad de rol","Conflicto de rol","Carga de trabajo","Vulnerabilidad"],a:0,e:"Aquí el foco está en el reconocimiento del trabajo y el rol."},
+{d:"RC",q:"Recibe dos instrucciones incompatibles: una persona le indica hacer una tarea de una forma y otra le exige exactamente lo contrario. ¿Cuál es la diferencia?",o:["Es principalmente reconocimiento y claridad de rol","Es principalmente conflicto de rol","Es principalmente compañerismo","Es principalmente desarrollo profesional"],a:1,e:"Cuando el centro es la incompatibilidad o contradicción entre demandas, hablamos de conflicto de rol."},
+// CR
+{d:"CR",q:"Una trabajadora recibe dos instrucciones que no pueden cumplirse simultáneamente. ¿Qué dimensión?",o:["Conflicto de rol","Carga de trabajo","Compañerismo","Desarrollo profesional"],a:0,e:"La característica clave es la incompatibilidad entre demandas."},
+{d:"CR",q:"Una persona debe priorizar una tarea urgente, pero al mismo tiempo recibe la instrucción de terminar otra tarea que también se exige para ese mismo momento. ¿Qué dimensión?",o:["Conflicto de rol","Reconocimiento y claridad de rol","Exigencias emocionales","Desarrollo profesional"],a:0,e:"La dificultad central está en demandas que entran en conflicto."},
+{d:"CR",q:"No saber quién es responsable de una tarea y recibir instrucciones incompatibles parecen similares. ¿Qué ayuda a diferenciarlas?",o:["Si falta claridad sobre funciones, se acerca a RC; si las demandas son contradictorias, se acerca a CR","Ambas siempre son violencia","Ambas siempre son carga de trabajo","No existe diferencia"],a:0,e:"La falta de claridad del rol y la contradicción entre demandas son fenómenos relacionados, pero distintos."},
+// QL
+{d:"QL",q:"La jefatura organiza el trabajo, entrega orientación y escucha las dificultades del equipo. ¿Qué dimensión?",o:["Calidad del liderazgo","Compañerismo","Confianza y justicia organizacional","Desarrollo profesional"],a:0,e:"El foco está en cómo se ejerce y percibe el liderazgo directo."},
+{d:"QL",q:"Una educadora necesita orientación para abordar una situación de trabajo y siente que no recibe apoyo de quien lidera directamente. ¿Qué dimensión?",o:["Calidad del liderazgo","Carga de trabajo","Compañerismo","Equilibrio trabajo-vida privada"],a:0,e:"La situación se refiere al apoyo y conducción por parte del liderazgo."},
+{d:"QL",q:"Dos compañeros se apoyan mutuamente, pero la jefatura no entrega orientación cuando el equipo la necesita. ¿Qué diferencia es importante?",o:["Todo es compañerismo","El apoyo entre pares se relaciona con CM; el apoyo de la jefatura con QL","Todo es confianza y justicia","Todo es desarrollo profesional"],a:1,e:"CM se centra en las relaciones entre compañeros; QL, en el liderazgo."},
+// CM
+{d:"CM",q:"Cuando una compañera tiene una dificultad, sus pares se organizan para ayudarla. ¿Qué dimensión?",o:["Compañerismo","Calidad del liderazgo","Conflicto de rol","Inseguridad con las condiciones de trabajo"],a:0,e:"El foco está en la colaboración y apoyo entre compañeros."},
+{d:"CM",q:"El equipo comparte información, se ayuda y mantiene relaciones de cooperación en el trabajo cotidiano. ¿Qué dimensión?",o:["Compañerismo","Violencia y acoso","Carga de trabajo","Equilibrio trabajo-vida privada"],a:0,e:"Se describe apoyo y cooperación entre pares."},
+{d:"CM",q:"La jefatura escucha y apoya, pero entre compañeros existe poca colaboración. ¿Qué dimensión conviene analizar para esa segunda situación?",o:["Compañerismo","Calidad del liderazgo","Desarrollo profesional","Vulnerabilidad"],a:0,e:"Para las relaciones de apoyo entre pares corresponde mirar compañerismo."},
+// IT
+{d:"IT",q:"Una trabajadora teme que un cambio en las condiciones de su trabajo pueda afectar su estabilidad laboral. ¿Qué dimensión?",o:["Inseguridad con las condiciones de trabajo","Equilibrio trabajo-vida privada","Compañerismo","Desarrollo profesional"],a:0,e:"El foco está en la incertidumbre o inseguridad respecto de las condiciones de trabajo."},
+{d:"IT",q:"Existe preocupación por modificaciones futuras que podrían cambiar funciones o condiciones laborales. ¿Qué dimensión?",o:["Inseguridad con las condiciones de trabajo","Exigencias emocionales","Carga de trabajo","Compañerismo"],a:0,e:"La incertidumbre sobre cambios laborales se relaciona con esta dimensión."},
+{d:"IT",q:"Una persona llega a casa cansada y siente que el trabajo le quita tiempo para su familia. ¿Qué diferencia es importante?",o:["Es principalmente IT porque hay cansancio","Es principalmente equilibrio trabajo-vida privada; IT se centra en inseguridad respecto de las condiciones de trabajo","Es principalmente compañerismo","Es principalmente desarrollo profesional"],a:1,e:"El cansancio por interferencia del trabajo con la vida privada se diferencia de la inseguridad sobre las condiciones laborales."},
+// TV
+{d:"TV",q:"Las reuniones o tareas fuera del horario habitual dificultan que una trabajadora pueda compartir tiempo con su familia. ¿Qué dimensión?",o:["Equilibrio trabajo-vida privada","Inseguridad con las condiciones de trabajo","Compañerismo","Desarrollo profesional"],a:0,e:"El foco está en la interferencia del trabajo con la vida personal y familiar."},
+{d:"TV",q:"Una persona siente que las responsabilidades laborales dificultan organizar sus actividades personales. ¿Qué dimensión?",o:["Equilibrio trabajo-vida privada","Conflicto de rol","Calidad del liderazgo","Violencia y acoso"],a:0,e:"La situación describe dificultades de compatibilización entre trabajo y vida privada."},
+{d:"TV",q:"Existe temor por un posible cambio contractual, pero todavía no afecta el tiempo personal. ¿Cuál sería la dimensión más directamente relacionada?",o:["Equilibrio trabajo-vida privada","Inseguridad con las condiciones de trabajo","Compañerismo","Exigencias emocionales"],a:1,e:"El elemento descrito es la incertidumbre sobre las condiciones laborales, no la interferencia con la vida privada."},
+// CJ
+{d:"CJ",q:"Una trabajadora considera que las decisiones se comunican de forma transparente y que existe un trato justo dentro de la organización. ¿Qué dimensión?",o:["Confianza y justicia organizacional","Calidad del liderazgo","Compañerismo","Desarrollo profesional"],a:0,e:"El foco está en confianza, transparencia, justicia y equidad organizacional."},
+{d:"CJ",q:"Una persona siente que las reglas se aplican de manera diferente a distintos trabajadores y que las decisiones no siempre son explicadas. ¿Qué dimensión?",o:["Confianza y justicia organizacional","Carga de trabajo","Exigencias emocionales","Desarrollo profesional"],a:0,e:"La percepción de trato desigual y falta de transparencia se relaciona con justicia y confianza organizacional."},
+{d:"CJ",q:"La jefatura escucha y orienta bien, pero existe la percepción de que algunas decisiones institucionales no son justas. ¿Qué diferencia?",o:["Todo corresponde a calidad del liderazgo","El liderazgo puede ser QL; la percepción de justicia organizacional se analiza en CJ","Todo corresponde a compañerismo","Todo corresponde a carga de trabajo"],a:1,e:"QL se refiere al liderazgo; CJ aborda confianza, transparencia y justicia en la organización."},
+// VU
+{d:"VU",q:"Una trabajadora tiene miedo de pedir mejores condiciones de trabajo porque teme consecuencias negativas para ella. ¿Qué dimensión?",o:["Vulnerabilidad","Violencia y acoso","Compañerismo","Desarrollo profesional"],a:0,e:"La situación se relaciona con temor, desprotección o indefensión frente a posibles consecuencias en la relación laboral, rasgos propios de Vulnerabilidad."},
+{d:"VU",q:"Una persona teme que, si plantea una dificultad, pueda quedar en una posición vulnerable y no contar con respaldo suficiente. ¿Qué dimensión?",o:["Vulnerabilidad","Carga de trabajo","Equilibrio trabajo-vida privada","Desarrollo profesional"],a:0,e:"La situación se centra en sentirse expuesta o indefensa."},
+{d:"VU",q:"Una compañera realiza comentarios humillantes de manera reiterada hacia otra persona. ¿Qué diferencia es importante?",o:["Es solamente vulnerabilidad","La conducta concreta puede corresponder a violencia y acoso; la vulnerabilidad se refiere a sentirse expuesto o indefenso","Es solamente carga de trabajo","Es desarrollo profesional"],a:1,e:"VU y VA pueden relacionarse, pero no son lo mismo: una se centra en vulnerabilidad y otra en conductas de violencia/acoso."},
+// VA
+{d:"VA",q:"Durante el último tiempo, una persona ha estado expuesta en su trabajo a conductas ofensivas, intimidatorias o no deseadas. ¿Qué dimensión?",o:["Violencia y acoso","Vulnerabilidad","Carga de trabajo","Desarrollo profesional"],a:0,e:"El foco está en la exposición a conductas concretas de violencia, intimidación, ofensa o acoso, que corresponde diferenciar de la sensación de vulnerabilidad."},
+{d:"VA",q:"Una trabajadora es objeto de conductas agresivas o de hostigamiento en el contexto laboral. ¿Qué dimensión?",o:["Violencia y acoso","Compañerismo","Confianza y justicia organizacional","Equilibrio trabajo-vida privada"],a:0,e:"El foco está en la exposición a conductas de violencia, hostigamiento o acoso."},
+{d:"VA",q:"Una persona siente temor ante una situación, pero no se describe ninguna conducta ofensiva, intimidatoria o de acoso. ¿Qué diferencia?",o:["Siempre es violencia y acoso","Puede relacionarse con vulnerabilidad; para VA debe analizarse la existencia de conductas de violencia o acoso","Siempre es carga de trabajo","Siempre es compañerismo"],a:1,e:"El temor por sí solo no describe necesariamente una conducta de violencia o acoso."}
+];
+
+const state={mode:"",index:0,score:0,answered:false,phase:"training",errors:{},diff:[],final:[],reflection:false};
+let currentList=[];
+
+function $(id){return document.getElementById(id)}
+function startMode(mode){
+ state.mode=mode; state.index=0; state.score=0; state.answered=false; state.phase="training"; state.errors={}; state.reflection=false;
+ $("start").classList.add("hidden"); $("intro").classList.remove("hidden");
+ $("intro").innerHTML=`
+ <h2>${mode==="council"?"👥 Modo Consejo":"👤 Modo Individual"}</h2>
+ <p>${mode==="council"?"La idea es proyectar cada situación, conversar y responder entre todos. En este modo el recorrido mantiene un orden fijo para facilitar la conversación grupal.":"Puedes realizar el ejercicio a tu propio ritmo. En este modo, las preguntas y alternativas cambian de orden cada vez que comienzas una nueva sesión, para que el aprendizaje no dependa de memorizar posiciones."}</p>
+ <div class="notice"><strong>Regla de oro:</strong> no buscamos adivinar “la respuesta correcta” del cuestionario real. Buscamos comprender qué significa cada dimensión y aprender a diferenciar situaciones parecidas.</div>
+ <h3>Primero: conozcamos las 12 dimensiones</h3>
+ <div class="grid">${dims.map(x=>`<div class="dim"><span class="tag">${x[0]}</span><strong>${x[1]}</strong><p class="small">${x[2]}</p></div>`).join("")}</div>
+ <div class="buttons"><button class="primary" onclick="beginTraining()">Comenzar entrenamiento</button><button class="secondary" onclick="backHome()">Volver</button></div>`;
+}
+function backHome(){ $("intro").classList.add("hidden"); $("start").classList.remove("hidden"); }
+function shuffle(arr){
+ return arr.map(v=>({v, r:Math.random()})).sort((a,b)=>a.r-b.r).map(x=>x.v);
+}
+function prepareList(list){
+ if(state.mode==="council") return list.map(q=>({...q,o:[...q.o]}));
+ return shuffle(list).map(q=>{
+   const pairs=q.o.map((text,i)=>({text,correct:i===q.a}));
+   const mixed=shuffle(pairs);
+   return {...q,o:mixed.map(x=>x.text),a:mixed.findIndex(x=>x.correct)};
+ });
+}
+function beginTraining(){
+ state.phase="training";state.index=0;
+ currentList=prepareList(questions);
+ renderQuestion();
+}
+function dimName(code){return (dims.find(x=>x[0]===code)||["","Dimensión",""])[1]}
+function renderQuestion(){
+ $("intro").classList.add("hidden"); $("app").classList.remove("hidden");
+ const q=currentList[state.index];
+ const pct=Math.round((state.index/currentList.length)*100);
+ $("app").innerHTML=`
+ <div class="card">
+  <div class="small">${state.phase==="training"?"Entrenamiento: reconocer dimensiones":state.phase==="diff"?"Desafío de diferenciación":"Evaluación final de aprendizaje"}</div>
+  <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
+  <span class="tag">${state.index+1} de ${currentList.length}</span>
+  <span class="tag">${q.d} · ${dimName(q.d)}</span>
+  <h2>${q.q}</h2>
+  <div>${q.o.map((x,i)=>`<button class="option" onclick="answer(${i})">${String.fromCharCode(65+i)}. ${x}</button>`).join("")}</div>
+  <div id="feedback"></div>
+ </div>`;
+}
+function answer(choice){
+ if(state.answered)return;
+ state.answered=true;
+ const q=currentList[state.index];
+ const ok=choice===q.a;
+ if(ok){
+   if(state.phase==="training") state.score+=1;
+   if(state.phase==="diff") state.score+=2;
+   if(state.phase==="final") state.score+=3;
+ } else {
+   state.errors[q.d]=(state.errors[q.d]||0)+1;
+ }
+ document.querySelectorAll(".option").forEach((b,i)=>{b.disabled=true;if(i===q.a)b.style.borderColor="var(--green)";if(i===choice&&!ok)b.style.borderColor="var(--red)"});
+ $("feedback").innerHTML=`<div class="feedback ${ok?"correct":"incorrect"}"><strong>${ok?"✅ Correcto":"🔎 Para revisar"}</strong><br>${q.e}<br><br><strong>Dimensión trabajada:</strong> ${dimName(q.d)} (${q.d})<div class="buttons"><button class="primary" onclick="nextQuestion()">${state.index===currentList.length-1?"Continuar":"Siguiente"}</button></div></div>`;
+}
+function nextQuestion(){
+ state.answered=false;
+ if(state.index<currentList.length-1){state.index++;renderQuestion();return;}
+ if(state.phase==="training"){startDiff();return;}
+ if(state.phase==="diff"){startFinal();return;}
+ showReflection();
+}
+function startDiff(){
+ state.phase="diff";state.index=0;
+ // Selecciona 12 preguntas de contraste, una por dimensión: las terceras de cada bloque.
+ state.diff=[];
+ for(let i=2;i<questions.length;i+=3) state.diff.push(questions[i]);
+ currentList=prepareList(state.diff);renderQuestion();
+}
+function startFinal(){
+ state.phase="final";state.index=0;
+ state.final=[];
+ // Una pregunta representativa por dimensión, tomando la primera de cada bloque.
+ for(let i=0;i<questions.length;i+=3) state.final.push(questions[i]);
+ currentList=prepareList(state.final);renderQuestion();
+}
+function showReflection(){
+ $("app").innerHTML=`
+ <div class="card">
+  <h2>💭 Cierre de aprendizaje</h2>
+  <p>Completa brevemente esta reflexión. No se guarda ni se envía.</p>
+  <label><strong>¿Qué dimensión ahora comprendes mejor que antes?</strong></label>
+  <textarea id="r1" placeholder="Escribe aquí..."></textarea>
+  <br><br>
+  <label><strong>¿Qué diferencia entre dos dimensiones te parecía difícil?</strong></label>
+  <textarea id="r2" placeholder="Escribe aquí..."></textarea>
+  <div class="buttons"><button class="primary" onclick="finish()">Ver resultado de aprendizaje</button></div>
+ </div>`;
+}
+function finish(){
+ state.reflection=true;
+ const pct=Math.round(state.score/96*100);
+ let level=pct>=85?"🟢 Muy buen manejo de las dimensiones":pct>=65?"🟡 Buen avance: conviene reforzar algunas diferencias":"🔵 Etapa inicial: se recomienda volver a practicar";
+ const weak=Object.entries(state.errors).sort((a,b)=>b[1]-a[1]).slice(0,4);
+ $("app").innerHTML=`
+ <div class="card center">
+  <h2>🎉 Resultado de aprendizaje</h2>
+  <div class="scorebox">
+   <div class="stat"><strong>${pct}%</strong><span>desempeño en el ejercicio</span></div>
+   <div class="stat"><strong>${state.score}</strong><span>puntos de 96</span></div>
+  </div>
+  <hr>
+  <h2>${level}</h2>
+  <p>Este resultado refleja solamente el desempeño en este ejercicio formativo. En el modo individual, el orden de preguntas y alternativas puede cambiar en una nueva sesión.</p>
+  <div class="notice"><strong>Importante:</strong> este porcentaje NO es un resultado de riesgo psicosocial, no representa a la persona ni al establecimiento y no anticipa el resultado del cuestionario oficial.</div>
+ </div>
+ <div class="card">
+  <h3>📚 Dimensiones que conviene volver a revisar</h3>
+  ${weak.length?weak.map(x=>`<p>• <strong>${dimName(x[0])} (${x[0]})</strong> — ${x[1]} respuesta(s) para revisar.</p>`).join(""):"<p>¡No se detectaron errores durante el ejercicio!</p>"}
+  <div class="buttons">
+   <button class="primary" onclick="restart()">Volver a practicar</button>
+   <button class="secondary" onclick="printResult()">🖨️ Imprimir / guardar esta pantalla</button>
+  </div>
+ </div>
+ <div class="card">
+  <h3>🌱 Mensaje final</h3>
+  <p>El objetivo de esta actividad es que cada trabajador pueda comprender las dimensiones, reconocer ejemplos y llegar a la aplicación real con mayor claridad y confianza.</p>
+  <p><strong>Cuando llegue el momento del cuestionario real, cada persona debe responder de acuerdo con su propia experiencia y percepción, no según lo aprendido en este simulador.</strong></p>
+ </div>`;
+}
+function restart(){state.index=0;state.score=0;state.errors={};state.answered=false;beginTraining();}
+function printResult(){window.print();}
+</script>
+</body>
+</html>
